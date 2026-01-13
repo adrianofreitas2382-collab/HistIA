@@ -6,7 +6,7 @@ const app = document.getElementById("app");
 const badgeModel = document.getElementById("badgeModel");
 
 function escapeHtml(s="") {
-  return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+  return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;" }[m]));
 }
 function escapeAttr(s="") {
   return escapeHtml(s).replace(/"/g, "&quot;");
@@ -374,7 +374,7 @@ function renderTerms() {
 function renderStory(storyId) {
   const story = getStory(storyId);
   if (!story) { location.hash = "#/stories"; return; }
-
+  
   story.pages = Array.isArray(story.pages) ? story.pages : [];
 
   app.innerHTML = "";
@@ -448,58 +448,58 @@ function renderStory(storyId) {
   // Páginas: 0..pages.length-1 (arquivadas), pages.length = página atual
   let pageIndex = (Array.isArray(story.pages) ? story.pages.length : 0);
 
-function updatePager(){
-  const pages = Array.isArray(story.pages) ? story.pages : [];
-  const isCurrent = (pageIndex === pages.length);
-  prevBtn.disabled = (pageIndex <= 0);
-  nextBtn.disabled = (pageIndex >= pages.length);
-  if (isCurrent) {
-    pageLabel.textContent = `Página atual (CAP${story.chapter})`;
-  } else {
-    const p = pages[pageIndex];
-    pageLabel.textContent = `${p?.label || "Página"} • ${new Date(p.at).toLocaleString()}`;
+  function updatePager(){
+    const pages = Array.isArray(story.pages) ? story.pages : [];
+    const isCurrent = (pageIndex === pages.length);
+    prevBtn.disabled = (pageIndex <= 0);
+    nextBtn.disabled = (pageIndex >= pages.length);
+    if (isCurrent) {
+      pageLabel.textContent = `Página atual (CAP${story.chapter})`;
+    } else {
+      const p = pages[pageIndex];
+      pageLabel.textContent = `${p?.label || "Página"} • ${new Date(p.at).toLocaleString()}`;
+    }
   }
-}
 
-prevBtn.addEventListener("click", ()=>{
-  if (prevBtn.disabled) return;
-  pageIndex -= 1;
-  tts.stop();
-  renderText();
-  renderControls();
-  updatePager();
-});
-
-nextBtn.addEventListener("click", ()=>{
-  const pages = Array.isArray(story.pages) ? story.pages : [];
-  if (pageIndex >= pages.length) return;
-  pageIndex += 1;
-  tts.stop();
-  renderText();
-  renderControls();
-  updatePager();
-});
-
+  prevBtn.addEventListener("click", ()=>{
+    if (prevBtn.disabled) return;
+    pageIndex -= 1;
+    tts.stop();
+    renderText();
     renderControls();
+    updatePager();
   });
+
+  nextBtn.addEventListener("click", ()=>{
+    const pages = Array.isArray(story.pages) ? story.pages : [];
+    if (pageIndex >= pages.length) return;
+    pageIndex += 1;
+    tts.stop();
+    renderText();
+    renderControls();
+    updatePager();
+  });
+
+  // chamamos controles iniciais
+  renderControls();
 
   function renderText() {
-  // Exibição por páginas: páginas antigas ficam em story.pages; o texto atual é a “página em andamento”
-  const pages = Array.isArray(story.pages) ? story.pages : [];
-  const isCurrent = (pageIndex === pages.length);
-  const sourceText = isCurrent ? (story.fullText || "") : (pages[pageIndex]?.text || "");
+    // Exibição por páginas: páginas antigas ficam em story.pages; o texto atual é a “página em andamento”
+    const pages = Array.isArray(story.pages) ? story.pages : [];
+    const isCurrent = (pageIndex === pages.length);
+    const sourceText = isCurrent ? (story.fullText || "") : (pages[pageIndex]?.text || "");
 
-  const parts = store.splitSentences(sourceText);
-  textBox.innerHTML = "";
-  parts.forEach((p, i) => {
-    const span = document.createElement("span");
-    span.textContent = p + " ";
-    span.dataset.i = String(i);
-    textBox.appendChild(span);
-  });
-}
+    const parts = store.splitSentences(sourceText);
+    textBox.innerHTML = "";
+    parts.forEach((p, i) => {
+      const span = document.createElement("span");
+      span.textContent = p + " ";
+      span.dataset.i = String(i);
+      textBox.appendChild(span);
+    });
+  }
 
-  function setHighlight  function setHighlight(idx) {
+  function setHighlight(idx) {
     [...textBox.querySelectorAll("span")].forEach(s => s.classList.remove("hl"));
     const e = textBox.querySelector(`span[data-i="${idx}"]`);
     if (e) e.classList.add("hl");
