@@ -22,6 +22,7 @@ export const store = {
   getLicense(){ return localStorage.getItem(LS_LICENSE) || ""; },
   setLicense(v){ if (!v) localStorage.removeItem(LS_LICENSE); else localStorage.setItem(LS_LICENSE, v); },
 
+  // Default já em 2.5, já que você confirmou que funciona
   getModel(){ return localStorage.getItem(LS_MODEL) || "gemini-2.5-flash"; },
   setModel(v){ if (!v) localStorage.removeItem(LS_MODEL); else localStorage.setItem(LS_MODEL, v); },
 
@@ -41,6 +42,12 @@ export const store = {
 
   splitSentences(text){
     return String(text).split(/(?<=[\.!\?\n])\s+/).filter(Boolean);
+  },
+
+  deathHeuristic(story, newText){
+    if (!story.firstPerson) return false;
+    const t = String(newText||"").toLowerCase();
+    return t.includes("você morre") || t.includes("você morreu") || t.includes("eu morri") || t.includes("eu morro");
   }
 };
 
@@ -58,17 +65,34 @@ export function createStory(payload){
 
     status: "active",
     chapter: 1,
-    stage: 0,              // 0, 50, 90, 100
+    stage: 0,
 
     fullText: "",
     pendingChoices: null,
     pendingChoiceAt: null,
 
     choices: [],
+    pages: [],
 
     createdAt,
     updatedAt: createdAt
   };
+}
+
+export function addPageSnapshot(story, label){
+  const at = nowIso();
+  const id = `${story.chapter}-${story.stage}-${at}`;
+  const text = String(story.fullText || "").trim();
+  story.pages = Array.isArray(story.pages) ? story.pages : [];
+  const last = story.pages[story.pages.length - 1];
+  if (!last || last.text !== text) {
+    story.pages.push({ id, label, text, at, chapter: story.chapter, stage: story.stage });
+  }
+}
+
+export function getPageById(story, pageId){
+  if (!story?.pages) return null;
+  return story.pages.find(p => p.id === pageId) || null;
 }
 
 export function saveStory(story){
@@ -127,4 +151,34 @@ export function addChoice(story, choiceIndex){
 export function resetPending(story){
   story.pendingChoices = null;
   story.pendingChoiceAt = null;
+}
+
+export function canAdvanceChapter(story){
+  return story.status === "active" && story.stage === 100 && story.chapter < 10;
+}
+
+export function nextChapterInit(story){
+  if (!canAdvanceChapter(story)) return;
+  story.chapter += 1;
+  story.stage = 0;
+  story.pendingChoices = null;
+  story.pendingChoiceAt = null;
+  story.fullText = (story.fullText + `\n\n=== CAPÍTULO ${story.chapter} ===\n`).trim();
+}
+
+
+export function nextCapLabel(story){
+  const ch = story.chapter || 1;
+  const pages = Array.isArray(story.pages) ? story.pages : [];
+  const count = pages.filter(p => p.chapter === ch).length + 1;
+  return `CAP${ch}_${count}`;
+}
+
+export function archiveCurrentAsPage(story){
+  const text = String(story.fullText || "").trim();
+  if (!text) return;
+  const label = nextCapLabel(story);
+  addPageSnapshot(story, label);
+  // após arquivar, limpa o texto atual para exibir somente o novo trecho
+  story.fullText = "";
 }
