@@ -92,6 +92,52 @@ function parseOutput(raw){
   ]};
 }
 
+
+
+async function callGemini(prompt, apiKey){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model()}:generateContent`;
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.9, topP: 0.95, maxOutputTokens: 1200 }
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-goog-api-key": apiKey },
+    body: JSON.stringify(body)
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = data?.error?.message || "Falha ao chamar Gemini.";
+    throw new Error(msg);
+  }
+  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+  return text.trim();
+}
+
+// Garante 3 escolhas nas pausas (stage 0 e 50).
+// Se o modelo não devolver [ESCOLHAS], faz uma segunda tentativa e, por fim, usa fallback.
+async function ensureChoices(story, stage, parsed, apiKey){
+  if ((stage === 0 || stage === 50) && (!parsed.choices || parsed.choices.length !== 3)) {
+    const prompt = `
+${baseRules(story)}
+
+Texto atual (não repita; apenas gere as escolhas condizentes):
+${(parsed.text || story.fullText || "(vazio)")}
+
+Gere obrigatoriamente o bloco [ESCOLHAS] com exatamente 3 opções numeradas de 1 a 3.
+`;
+    const raw2 = await callGemini(prompt, apiKey);
+    const p2 = parseOutput(raw2);
+    if (p2.choices && p2.choices.length === 3) {
+      return { text: (p2.text || parsed.text || "").trim(), choices: p2.choices };
+    }
+    return { text: (p2.text || parsed.text || "").trim(), choices: fallbackChoices() };
+  }
+  return parsed;
+}
+
 export async function geminiGenerateSegment(story, stage){
   const apiKey = store.getLicense();
   if (!apiKey) throw new Error("Licença de Uso ausente. Vá em Termos e Condições.");
