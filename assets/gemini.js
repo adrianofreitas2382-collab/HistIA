@@ -116,3 +116,29 @@ ${segmentInstruction(stage)}
   const text = data?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
   return parseOutput(text.trim());
 }
+
+
+export async function geminiContinue(story, expectation){
+  // expectation: "need_choices" | "need_finish" | "continue"
+  const apiKey = store.getLicense();
+  if (!apiKey) throw new Error("Licença de Uso ausente. Vá em Termos e Condições.");
+
+  let instruction = `Continue exatamente do ponto onde o texto parou. Não repita trechos.`;
+  if (expectation === "need_choices"){
+    instruction += ` Ao final, gere o bloco [ESCOLHAS] com exatamente 3 opções numeradas de 1 a 3.`;
+  } else if (expectation === "need_finish"){
+    instruction += ` Conclua o trecho pendente do capítulo atual, sem criar novas escolhas.`;
+  }
+
+  const prompt = `
+${baseRules(story)}
+
+Texto atual (continue daqui, sem repetir):
+${story.fullText || "(vazio)"}
+
+${instruction}
+`;
+
+  const raw = await callGemini(prompt, apiKey);
+  return parseOutput(raw);
+}

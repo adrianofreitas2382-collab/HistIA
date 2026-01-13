@@ -165,3 +165,21 @@ export function nextChapterInit(story){
   story.pendingChoiceAt = null;
   story.fullText = (story.fullText + `\n\n=== CAPÍTULO ${story.chapter} ===\n`).trim();
 }
+
+
+// --- Páginas (Livro) ---
+export function nextCapLabel(story){
+  const ch = story.chapter || 1;
+  const pages = Array.isArray(story.pages) ? story.pages : [];
+  const count = pages.filter(p => p.chapter === ch).length + 1;
+  return `CAP${ch}_${count}`;
+}
+
+export function archiveCurrentAsPage(story){
+  const text = String(story.fullText || "").trim();
+  if (!text) return;
+  const label = nextCapLabel(story);
+  // usa addPageSnapshot existente
+  addPageSnapshot(story, label);
+  story.fullText = "";
+}
