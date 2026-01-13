@@ -113,10 +113,3 @@ textarea{ min-height:130px; resize:vertical; }
 .notice{ padding:12px 14px; border-radius:16px; border:1px solid var(--border); background: rgba(0,0,0,0.22); }
 .error{ color: var(--danger); }
 @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
-
-.segSep{ height:1px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.18), transparent); margin:18px 0; }
-
-.pager{ display:flex; gap:10px; align-items:center; }
-.pagerBtn{ width:44px; height:44px; border-radius:14px; border:1px solid var(--border); background: var(--glass); color: var(--text); font-weight:700; cursor:pointer; }
-.pagerBtn:disabled{ opacity:0.35; cursor:not-allowed; }
-.pagerLabel{ color: var(--muted); }
