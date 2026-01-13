@@ -167,7 +167,7 @@ export function nextChapterInit(story){
 }
 
 
-// --- Páginas (Livro) ---
+// --- Livro (páginas) ---
 export function nextCapLabel(story){
   const ch = story.chapter || 1;
   const pages = Array.isArray(story.pages) ? story.pages : [];
@@ -175,11 +175,11 @@ export function nextCapLabel(story){
   return `CAP${ch}_${count}`;
 }
 
+// Arquiva o texto atual como página CAPx_y e limpa a leitura atual
 export function archiveCurrentAsPage(story){
   const text = String(story.fullText || "").trim();
   if (!text) return;
   const label = nextCapLabel(story);
-  // usa addPageSnapshot existente
   addPageSnapshot(story, label);
   story.fullText = "";
 }

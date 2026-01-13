@@ -58,7 +58,16 @@ Formato:
   return `Tarefa: Capítulo já concluído.`;
 }
 
+function fallbackChoices(){
+  return [
+    "Investigar discretamente a próxima pista",
+    "Confrontar diretamente o principal suspeito",
+    "Recuar e preparar um plano mais seguro"
+  ];
+}
+
 function parseOutput(raw){
+
   const marker = /\[ESCOLHAS\]/i;
   const parts = raw.split(marker);
   if (parts.length === 1) return { text: raw.trim(), choices: null };
@@ -96,26 +105,11 @@ ${story.fullText || "(vazio)"}
 ${segmentInstruction(stage)}
 `;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model()}:generateContent`;
-  const body = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.9, topP: 0.95, maxOutputTokens: 1200 }
-  };
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type":"application/json", "X-goog-api-key": apiKey },
-    body: JSON.stringify(body)
-  });
-
-  const data = await res.json();
-  if (!res.ok){
-    const msg = data?.error?.message || "Falha ao chamar Gemini.";
-    throw new Error(msg);
-  }
-  const text = data?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
-  return parseOutput(text.trim());
+  const raw = await callGemini(prompt, apiKey);
+  const parsed = parseOutput(raw);
+  return await ensureChoices(story, stage, parsed, apiKey);
 }
+
 
 
 export async function geminiContinue(story, expectation){
@@ -123,11 +117,11 @@ export async function geminiContinue(story, expectation){
   const apiKey = store.getLicense();
   if (!apiKey) throw new Error("Licença de Uso ausente. Vá em Termos e Condições.");
 
-  let instruction = `Continue exatamente do ponto onde o texto parou. Não repita trechos.`;
+  let instruction = "Continue exatamente do ponto onde o texto parou. Não repita trechos.";
   if (expectation === "need_choices"){
-    instruction += ` Ao final, gere o bloco [ESCOLHAS] com exatamente 3 opções numeradas de 1 a 3.`;
+    instruction += " Ao final, gere obrigatoriamente o bloco [ESCOLHAS] com exatamente 3 opções numeradas de 1 a 3.";
   } else if (expectation === "need_finish"){
-    instruction += ` Conclua o trecho pendente do capítulo atual, sem criar novas escolhas.`;
+    instruction += " Conclua o trecho pendente sem criar novas escolhas.";
   }
 
   const prompt = `
