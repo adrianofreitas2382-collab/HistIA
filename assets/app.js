@@ -241,6 +241,46 @@ function renderStories(){
   });
 
   app.appendChild(root);
+
+// 1 tentativa automática: se faltar opções nas pausas ou a conclusão parecer truncada, tenta uma única vez.
+(async ()=>{
+  if (didAutoRepair) return;
+  if (pageIndex !== story.pages.length) return;
+  if (!store.getLicense()) return;
+  if (story.pendingChoices) return;
+
+  const needChoices = ((story.stage === 50 || story.stage === 90) && !story.pendingChoices);
+  const needFinish = (story.stage === 100 && likelyTruncated(story.fullText));
+  if (!needChoices && !needFinish) return;
+
+  didAutoRepair = true;
+  err.textContent = needChoices ? "Gerando opções (1 tentativa automática)..." : "Concluindo trecho (1 tentativa automática)...";
+
+  try{
+    if (needChoices) {
+      const seg = await geminiContinue(story, "need_choices");
+      if (seg.text) story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
+      if (seg.choices && seg.choices.length === 3) {
+        story.pendingChoices = seg.choices;
+        story.pendingChoiceAt = (story.stage === 50) ? 1 : 2;
+        err.textContent = "";
+      } else {
+        err.textContent = "Não foi possível gerar opções automaticamente. Use Atualizar para tentar manualmente.";
+      }
+    } else if (needFinish) {
+      const seg = await geminiContinue(story, "need_finish");
+      if (seg.text) story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
+      err.textContent = "";
+    }
+    saveStory(story);
+    renderText();
+    renderControls();
+    updatePager();
+  } catch(e){
+    err.textContent = (e?.message || "Falha na tentativa automática.") + " Use Atualizar para tentar manualmente.";
+  }
+})();
+
 }
 
 function renderTutorial(){
@@ -316,6 +356,46 @@ function renderControls(){
   });
 
   app.appendChild(root);
+
+// 1 tentativa automática: se faltar opções nas pausas ou a conclusão parecer truncada, tenta uma única vez.
+(async ()=>{
+  if (didAutoRepair) return;
+  if (pageIndex !== story.pages.length) return;
+  if (!store.getLicense()) return;
+  if (story.pendingChoices) return;
+
+  const needChoices = ((story.stage === 50 || story.stage === 90) && !story.pendingChoices);
+  const needFinish = (story.stage === 100 && likelyTruncated(story.fullText));
+  if (!needChoices && !needFinish) return;
+
+  didAutoRepair = true;
+  err.textContent = needChoices ? "Gerando opções (1 tentativa automática)..." : "Concluindo trecho (1 tentativa automática)...";
+
+  try{
+    if (needChoices) {
+      const seg = await geminiContinue(story, "need_choices");
+      if (seg.text) story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
+      if (seg.choices && seg.choices.length === 3) {
+        story.pendingChoices = seg.choices;
+        story.pendingChoiceAt = (story.stage === 50) ? 1 : 2;
+        err.textContent = "";
+      } else {
+        err.textContent = "Não foi possível gerar opções automaticamente. Use Atualizar para tentar manualmente.";
+      }
+    } else if (needFinish) {
+      const seg = await geminiContinue(story, "need_finish");
+      if (seg.text) story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
+      err.textContent = "";
+    }
+    saveStory(story);
+    renderText();
+    renderControls();
+    updatePager();
+  } catch(e){
+    err.textContent = (e?.message || "Falha na tentativa automática.") + " Use Atualizar para tentar manualmente.";
+  }
+})();
+
 }
 
 function renderTerms(){
@@ -355,6 +435,46 @@ function renderTerms(){
   });
 
   app.appendChild(root);
+
+// 1 tentativa automática: se faltar opções nas pausas ou a conclusão parecer truncada, tenta uma única vez.
+(async ()=>{
+  if (didAutoRepair) return;
+  if (pageIndex !== story.pages.length) return;
+  if (!store.getLicense()) return;
+  if (story.pendingChoices) return;
+
+  const needChoices = ((story.stage === 50 || story.stage === 90) && !story.pendingChoices);
+  const needFinish = (story.stage === 100 && likelyTruncated(story.fullText));
+  if (!needChoices && !needFinish) return;
+
+  didAutoRepair = true;
+  err.textContent = needChoices ? "Gerando opções (1 tentativa automática)..." : "Concluindo trecho (1 tentativa automática)...";
+
+  try{
+    if (needChoices) {
+      const seg = await geminiContinue(story, "need_choices");
+      if (seg.text) story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
+      if (seg.choices && seg.choices.length === 3) {
+        story.pendingChoices = seg.choices;
+        story.pendingChoiceAt = (story.stage === 50) ? 1 : 2;
+        err.textContent = "";
+      } else {
+        err.textContent = "Não foi possível gerar opções automaticamente. Use Atualizar para tentar manualmente.";
+      }
+    } else if (needFinish) {
+      const seg = await geminiContinue(story, "need_finish");
+      if (seg.text) story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
+      err.textContent = "";
+    }
+    saveStory(story);
+    renderText();
+    renderControls();
+    updatePager();
+  } catch(e){
+    err.textContent = (e?.message || "Falha na tentativa automática.") + " Use Atualizar para tentar manualmente.";
+  }
+})();
+
 }
 
 function likelyTruncated(text){
@@ -370,6 +490,7 @@ function renderStory(storyId){
 
   story.pages = Array.isArray(story.pages) ? story.pages : [];
   let pageIndex = story.pages.length; // current
+  let didAutoRepair = false;
 
   app.innerHTML = "";
   const root = el(`
@@ -554,73 +675,103 @@ function renderStory(storyId){
       renderText();
       renderControls();
       updatePager();
-    } catch(e){
+      if ((story.stage === 50 || story.stage === 90) && !story.pendingChoices)if (story.stage === 100 && !story.pendingChoices && likelyTruncated(story.fullText))} catch(e){
       err.textContent = e?.message || "Erro ao chamar Gemini.";
       renderControls();
     }
   }
 
   // Atualizar: apenas para reparar geração incompleta (texto cortado ou opções ausentes)
-  root.querySelector("#refresh").addEventListener("click", async ()=>{
-    const btn = root.querySelector("#refresh");
-    const old = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = "Processando...";
-    err.textContent = "";
-    tts.stop();
+
+// --- Auto-reparo: enquanto não houver opções (50%/90%) ou conclusão (100%), tenta corrigir automaticamente ---
+let autoHealTimer = null;
+let autoHealRunning = false;
+let autoHealAttempts = 0;
+
+function clearAutoHeal(){
+  if (autoHealTimer) clearTimeout(autoHealTimer);
+  autoHealTimer = null;
+  autoHealRunning = false;
+  autoHealAttempts = 0;
+}
+
+function scheduleAutoHeal(delayMs){
+  if (autoHealTimer) clearTimeout(autoHealTimer);
+  autoHealTimer = setTimeout(async () => {
+    await autoHealTick();
+  }, delayMs);
+}
+
+function needsChoicesNow(){
+  return (pageIndex === story.pages.length) && !story.pendingChoices && (story.stage === 50 || story.stage === 90);
+}
+
+function needsFinishNow(){
+  return (pageIndex === story.pages.length) && !story.pendingChoices && (story.stage === 100) && likelyTruncated(story.fullText);
+}
+
+async function autoHealTick(){
+    if (pageIndex !== story.pages.length) return;
+    if (story.pendingChoices) { clearAutoHeal(); return; }
+    if (!store.getLicense()) { clearAutoHeal(); return; }
+
+    const needChoices = needsChoicesNow();
+    const needFinish = needsFinishNow();
+    if (!needChoices && !needFinish) { clearAutoHeal(); return; }
+
+    if (autoHealRunning) return;
+    autoHealRunning = true;
 
     try{
-      const updated = getStory(storyId);
-      if (!updated) return;
-      Object.assign(story, updated);
-      story.pages = Array.isArray(story.pages) ? story.pages : [];
+      autoHealAttempts += 1;
+      const nextDelay = Math.min(4500, Math.round(600 * (1.5 ** Math.min(6, autoHealAttempts))));
 
-      if (!store.getLicense()) throw new Error("Defina a Licença de Uso em Termos.");
+      err.textContent = needChoices ? "Reparando automaticamente: gerando opções..." : "Reparando automaticamente: concluindo trecho...";
 
-      // Só tenta reparar se não houver escolha pendente (para não alterar fluxo do leitor)
-      if (!story.pendingChoices) {
-        if (story.stage === 0) {
-          const seg = await geminiGenerateSegment(story, 0);
-          story.fullText = seg.text.trim();
+      if (needChoices) {
+        const seg = await geminiContinue(story, "need_choices");
+        if (seg.text) story.fullText = (story.fullText + "
+
+" + seg.text.trim()).trim();
+        if (seg.choices && seg.choices.length === 3) {
           story.pendingChoices = seg.choices;
-          story.pendingChoiceAt = 1;
-          story.stage = 50;
-        } else if (story.stage === 50) {
-          // precisava ter escolhas 1 (pausa 50%)
-          const seg = await geminiContinue(story, "need_choices");
-          story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
-          if (seg.choices && seg.choices.length === 3) {
-            story.pendingChoices = seg.choices;
-            story.pendingChoiceAt = 1;
-          }
-        } else if (story.stage === 90) {
-          // precisava ter escolhas 2 (pausa 90%)
-          const seg = await geminiContinue(story, "need_choices");
-          story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
-          if (seg.choices && seg.choices.length === 3) {
-            story.pendingChoices = seg.choices;
-            story.pendingChoiceAt = 2;
-          }
-        } else if (story.stage === 100) {
-          if (likelyTruncated(story.fullText)) {
-            const seg = await geminiContinue(story, "need_finish");
-            story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
-          }
+          story.pendingChoiceAt = (story.stage === 50) ? 1 : 2;
         }
+        saveStory(story);
+      } else if (needFinish) {
+        const seg = await geminiContinue(story, "need_finish");
+        if (seg.text) story.fullText = (story.fullText + "
+
+" + seg.text.trim()).trim();
         saveStory(story);
       }
 
-      pageIndex = story.pages.length;
       renderText();
       renderControls();
       updatePager();
+
+      if (needsChoicesNow() || needsFinishNow()) {
+        if (autoHealAttempts >= 5) {
+          err.textContent = "Reparo automático não concluiu. Use Atualizar para forçar nova tentativa.";
+          clearAutoHeal();
+          return;
+        }
+        autoHealRunning = false;return;
+      }
+
+      err.textContent = "";
+      clearAutoHeal();
     } catch(e){
-      err.textContent = e?.message || "Falha ao atualizar.";
+      if (autoHealAttempts >= 5) {
+        err.textContent = (e?.message || "Falha no reparo automático.") + " Use Atualizar para tentar manualmente.";
+        clearAutoHeal();
+      } else {
+        autoHealRunning = false;}
     } finally {
-      btn.disabled = false;
-      btn.textContent = old;
+      autoHealRunning = false;
     }
-  });
+}
+);
 
   root.querySelector("#narrate").addEventListener("click", ()=>{
     const isCurrent = (pageIndex === story.pages.length);
@@ -660,7 +811,7 @@ function renderStory(storyId){
       renderText();
       renderControls();
       updatePager();
-    } catch(e){
+      if ((story.stage === 50 || story.stage === 90) && !story.pendingChoices)if (story.stage === 100 && !story.pendingChoices && likelyTruncated(story.fullText))} catch(e){
       err.textContent = e?.message || "Falha ao gerar próximo capítulo.";
     } finally {
       nextBtn.disabled = false;
@@ -673,10 +824,51 @@ function renderStory(storyId){
   updatePager();
   app.appendChild(root);
 
-  // Aviso quando faltarem opções nas pausas (para orientar uso do Atualizar)
-  if ((story.stage === 50 || story.stage === 90) && !story.pendingChoices && pageIndex === story.pages.length) {
-    err.textContent = "Pausa sem opções: clique em Atualizar para tentar gerar as 3 escolhas.";
+// 1 tentativa automática: se faltar opções nas pausas ou a conclusão parecer truncada, tenta uma única vez.
+(async ()=>{
+  if (didAutoRepair) return;
+  if (pageIndex !== story.pages.length) return;
+  if (!store.getLicense()) return;
+  if (story.pendingChoices) return;
+
+  const needChoices = ((story.stage === 50 || story.stage === 90) && !story.pendingChoices);
+  const needFinish = (story.stage === 100 && likelyTruncated(story.fullText));
+  if (!needChoices && !needFinish) return;
+
+  didAutoRepair = true;
+  err.textContent = needChoices ? "Gerando opções (1 tentativa automática)..." : "Concluindo trecho (1 tentativa automática)...";
+
+  try{
+    if (needChoices) {
+      const seg = await geminiContinue(story, "need_choices");
+      if (seg.text) story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
+      if (seg.choices && seg.choices.length === 3) {
+        story.pendingChoices = seg.choices;
+        story.pendingChoiceAt = (story.stage === 50) ? 1 : 2;
+        err.textContent = "";
+      } else {
+        err.textContent = "Não foi possível gerar opções automaticamente. Use Atualizar para tentar manualmente.";
+      }
+    } else if (needFinish) {
+      const seg = await geminiContinue(story, "need_finish");
+      if (seg.text) story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
+      err.textContent = "";
+    }
+    saveStory(story);
+    renderText();
+    renderControls();
+    updatePager();
+  } catch(e){
+    err.textContent = (e?.message || "Falha na tentativa automática.") + " Use Atualizar para tentar manualmente.";
   }
+})();
+
+
+  // Auto-reparo: se faltar opções nas pausas ou a conclusão parecer truncada, tenta automaticamente
+  if ((story.stage === 50 || story.stage === 90) && !story.pendingChoices && pageIndex === story.pages.length) {
+    err.textContent = "Pausa sem opções: reparo automático em andamento...";}
+  if (story.stage === 100 && !story.pendingChoices && likelyTruncated(story.fullText) && pageIndex === story.pages.length) {
+    err.textContent = "Trecho possivelmente incompleto: reparo automático em andamento...";}
 }
 
 function renderDetails(storyId){
@@ -714,4 +906,44 @@ function renderDetails(storyId){
   });
 
   app.appendChild(root);
+
+// 1 tentativa automática: se faltar opções nas pausas ou a conclusão parecer truncada, tenta uma única vez.
+(async ()=>{
+  if (didAutoRepair) return;
+  if (pageIndex !== story.pages.length) return;
+  if (!store.getLicense()) return;
+  if (story.pendingChoices) return;
+
+  const needChoices = ((story.stage === 50 || story.stage === 90) && !story.pendingChoices);
+  const needFinish = (story.stage === 100 && likelyTruncated(story.fullText));
+  if (!needChoices && !needFinish) return;
+
+  didAutoRepair = true;
+  err.textContent = needChoices ? "Gerando opções (1 tentativa automática)..." : "Concluindo trecho (1 tentativa automática)...";
+
+  try{
+    if (needChoices) {
+      const seg = await geminiContinue(story, "need_choices");
+      if (seg.text) story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
+      if (seg.choices && seg.choices.length === 3) {
+        story.pendingChoices = seg.choices;
+        story.pendingChoiceAt = (story.stage === 50) ? 1 : 2;
+        err.textContent = "";
+      } else {
+        err.textContent = "Não foi possível gerar opções automaticamente. Use Atualizar para tentar manualmente.";
+      }
+    } else if (needFinish) {
+      const seg = await geminiContinue(story, "need_finish");
+      if (seg.text) story.fullText = (story.fullText + "\n\n" + seg.text.trim()).trim();
+      err.textContent = "";
+    }
+    saveStory(story);
+    renderText();
+    renderControls();
+    updatePager();
+  } catch(e){
+    err.textContent = (e?.message || "Falha na tentativa automática.") + " Use Atualizar para tentar manualmente.";
+  }
+})();
+
 }

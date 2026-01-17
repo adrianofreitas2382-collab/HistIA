@@ -119,24 +119,13 @@ async function callGemini(prompt, apiKey){
 // Garante 3 escolhas nas pausas (stage 0 e 50).
 // Se o modelo não devolver [ESCOLHAS], faz uma segunda tentativa e, por fim, usa fallback.
 async function ensureChoices(story, stage, parsed, apiKey){
+  // Para economizar quota: nenhuma chamada extra. Se faltar escolhas, usamos fallback local.
   if ((stage === 0 || stage === 50) && (!parsed.choices || parsed.choices.length !== 3)) {
-    const prompt = `
-${baseRules(story)}
-
-Texto atual (não repita; apenas gere as escolhas condizentes):
-${(parsed.text || story.fullText || "(vazio)")}
-
-Gere obrigatoriamente o bloco [ESCOLHAS] com exatamente 3 opções numeradas de 1 a 3.
-`;
-    const raw2 = await callGemini(prompt, apiKey);
-    const p2 = parseOutput(raw2);
-    if (p2.choices && p2.choices.length === 3) {
-      return { text: (p2.text || parsed.text || "").trim(), choices: p2.choices };
-    }
-    return { text: (p2.text || parsed.text || "").trim(), choices: fallbackChoices() };
+    return { text: (parsed.text || "").trim(), choices: fallbackChoices() };
   }
   return parsed;
 }
+
 
 export async function geminiGenerateSegment(story, stage){
   const apiKey = store.getLicense();
